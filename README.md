@@ -26,6 +26,10 @@ rrproxy takes a very simple Ruby configuration file.
 As you can probably guess, this will redirect requests for example.com's css file to a local server (while
 passing all other requests through normally).
 
+Run it like this:
+
+    $ rrproxy config.rb
+
 Here's a more complicated example (it's also in `examples/example_config.rb`):
 
     [
@@ -42,6 +46,10 @@ For each request, rrproxy will examine each routing rule in order, checking for 
 is a string) or a regex match. The first match found will be used, and the host for the request will be
 changed to the corresponding target host. If a replacement is provided, it will be used as a substitute for
 the first regex matching group (if the pattern is a regex) or the whole pattern (if the pattern is a string).
+
+You can pass a couple of options to rrproxy:
+
+    $ rrproxy -a 127.0.0.1 -p 4444 your_config.rb
 
 Credits
 -------
