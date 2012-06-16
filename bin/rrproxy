@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+
+require "trollop"
+require "dedent"
+require "colorize"
+
+require "rrproxy"
+
+# The goliath folks really need to take a page out of Sinatra's book and provide an easy way to start up a
+# server manually without using all their application runner and option parsing shit (in Sinatra terms,
+# 'sinatra' vs 'sinatra/base'). As it is I had to poke around the source code a while to figure out all the
+# little things necessary to make it work.
+
+# See https://github.com/postrank-labs/goliath/blob/master/lib/goliath/runner.rb
+def create_logger
+  logger = Log4r::Logger.new("rrproxy")
+  log_format = Log4r::PatternFormatter.new(:pattern => "[%d : %l] %m")
+  logger.add(Log4r::StdoutOutputter.new("console", :formatter => log_format))
+  logger.level = Log4r::INFO
+  logger
+end
+
+options = Trollop.options do
+  banner <<-EOS.dedent
+    rrproxy is a very simple reverse http proxy that can route requests based on pattern-matching the
+    URI. The configuration file is Ruby, and it must have the following form:
+
+      [
+        ["/foo/bar?special=true", "localhost:1234"], # Route this specific request to a local server
+        [%r{^(/foo).*}, "google.com", ""],           # You can use a regex, and also replace the match
+        ["", "amazon.com"]                           # Empty string matches everything
+      ]
+
+    Usage:
+
+      $ rrproxy [options] CONFIG_FILE
+
+    where [options] are:
+  EOS
+  opt :address, "Bind address", :default => "0.0.0.0"
+  opt :port, "Port", :default => 9876
+end
+
+Trollop.die "You must provide a configuration file" unless ARGV[0]
+Trollop.die "Invalid config file: #{ARGV[0]}" unless File.file? ARGV[0]
+begin
+  RRProxy.routes = eval(File.read(ARGV[0]))
+rescue
+  Trollop.die "Error reading or parsing the config file #{ARGV[0]}"
+end
+
+logger = create_logger
+logger.info "Starting rrproxy (powered by Goliath) on #{options[:address]}:#{options[:port]}".green
+RRProxy.routes.each do |route|
+  pattern, target, replacement = route
+  message = "Proxying `#{pattern}` to #{target}"
+  message << " and replacing pattern matches with `#{replacement}`" if replacement
+  logger.info message.green
+end
+
+Goliath.env = :development
+api = RRProxy.new
+server = Goliath::Server.new(options[:address], options[:port])
+server.logger = logger
+server.api = api
+server.app = Goliath::Rack::Builder.build(RRProxy, api)
+server.plugins = []
+server.start
