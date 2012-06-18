@@ -37,7 +37,12 @@ class RRProxy < Goliath::API
 
       target_url = "http://#{target}#{uri}"
       headers = env["untampered_headers"]
-      headers["HOST"] = target
+
+      # Try to make it look as much as possible like the request originates with us. This removes a bunch of
+      # security protections and is a reason rrproxy is only for development/testing puproses.
+      headers["Host"] = target
+      headers.delete "Referer"
+
       params = { :head => headers }
       params[:body] = env["params"] if [:put, :post, :patch].include? method
 
