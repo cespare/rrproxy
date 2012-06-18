@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+# Uncomment when running in development (i.e. running the local checkout, not the installed gem).
+#$:.unshift File.join(File.dirname(__FILE__), "../lib")
+
 require "trollop"
 require "dedent"
 require "colorize"
