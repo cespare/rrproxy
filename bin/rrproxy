@@ -5,6 +5,7 @@ require "dedent"
 require "colorize"
 
 require "rrproxy"
+require "rrproxy/version"
 
 # The goliath folks really need to take a page out of Sinatra's book and provide an easy way to start up a
 # server manually without using all their application runner and option parsing shit (in Sinatra terms,
@@ -21,6 +22,7 @@ def create_logger
 end
 
 options = Trollop.options do
+  version RRProxy::VERSION
   banner <<-EOS.dedent
     rrproxy is a very simple reverse http proxy that can route requests based on pattern-matching the
     URI. The configuration file is Ruby, and it must have the following form:
@@ -39,6 +41,7 @@ options = Trollop.options do
   EOS
   opt :address, "Bind address", :default => "0.0.0.0"
   opt :port, "Port", :default => 9876
+  opt :version, "See rrproxy version"
 end
 
 Trollop.die "You must provide a configuration file" unless ARGV[0]
